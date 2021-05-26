@@ -29,6 +29,10 @@ module.exports = [
           method: 'POST',
           isArray: true,
           params: {action: 'called-process-definitions'}
+        },
+        getCalledElementDefinitions: {
+          method: 'GET',
+          params: {action: 'called-element-definitions'}
         }
       }
     );
