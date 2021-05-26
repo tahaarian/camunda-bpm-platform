@@ -85,9 +85,9 @@ module.exports = function(viewContext) {
        * add hover and click interactions to buttonOverlay and diagramNode (BPMN diagram node that contains the buttonOverlay)
        * @param buttonOverlay
        * @param id
-       * @param activityInstances (callActivity instances)
+       * @param activityInstance (callActivity instance)
        */
-      function addInteractions(buttonOverlay, id, activityInstances) {
+      function addInteractions(buttonOverlay, id, activityInstance) {
         var diagramNode = angular.element('[data-element-id="' + id + '"]');
         var hideTimeout = null;
 
@@ -124,10 +124,10 @@ module.exports = function(viewContext) {
           applyFunction(cancelHide);
         };
 
-        var redirectToCalledPInstance = function(activityInstance) {
+        var redirectToCalledPInstance = function(calledProcessDefinitionId) {
           var url =
-            '/process-instance/' +
-            activityInstance.calledProcessInstanceId +
+            '/process-definition/' +
+            calledProcessDefinitionId +
             '/' +
             viewContext;
           $location.url(url);
@@ -135,9 +135,7 @@ module.exports = function(viewContext) {
 
         var clickListener = function() {
           buttonOverlay.tooltip('hide');
-          return activityInstances.length > 1
-            ? applyFunction(showCalledPInstances, activityInstances)
-            : applyFunction(redirectToCalledPInstance, activityInstances[0]);
+          return applyFunction(redirectToCalledPInstance, activityInstance);
         };
 
         // attach diagramNode listeners
