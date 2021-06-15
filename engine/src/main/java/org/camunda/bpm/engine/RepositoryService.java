@@ -19,6 +19,7 @@ package org.camunda.bpm.engine;
 import java.io.InputStream;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import org.camunda.bpm.application.ProcessApplicationReference;
 import org.camunda.bpm.engine.authorization.Permissions;
@@ -796,5 +797,6 @@ public interface RepositoryService {
    */
   InputStream getDecisionRequirementsDiagram(String decisionRequirementsDefinitionId);
 
+  Map<String, String> getLinkedElementDefinitions(String id);
 }
 

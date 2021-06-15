@@ -63,25 +63,6 @@ module.exports = function(viewContext) {
       }
 
       /**
-       * shows calledProcessInstances tab filtered by activityId
-       * @param activities
-       */
-      function showCalledPInstances(activities) {
-        var params = angular.copy(search());
-        viewContext === 'history'
-          ? (params.detailsTab = TAB_NAME)
-          : (params.tab = TAB_NAME);
-        search.updateSilently(params);
-
-        $scope.processData.set('filter', {
-          activityIds: [activities[0].activityId],
-          activityInstanceIds: activities.map(function(activity) {
-            return activity.id;
-          })
-        });
-      }
-
-      /**
        * add hover and click interactions to buttonOverlay and diagramNode (BPMN diagram node that contains the buttonOverlay)
        * @param buttonOverlay
        * @param id
@@ -161,16 +142,17 @@ module.exports = function(viewContext) {
       /**
        *
        * @param id (BPMN element id)
-       * @param activity (activity associated with that id)
+       * @param calledProcessDefinitionId (activity associated with that id)
        */
-      function addOverlayForSingleElement(id, activityInstances) {
+      function addOverlayForSingleElement(id, calledProcessDefinitionId) {
         if (!overlaysNodes[id]) {
           overlaysNodes[id] = angular.element(template).hide();
-
+          const isStatic = calledProcessDefinitionId !== null;
+          const text = isStatic ? 'Show statically linked called activity': 'Linked call activity is resolved at runtime'
           overlaysNodes[id].tooltip({
             container: 'body',
             title: $translate.instant(
-              'PLUGIN_ACTIVITY_INSTANCE_SHOW_CALLED_PROCESS_INSTANCES'
+              text
             ),
             placement: 'top',
             animation: false
@@ -187,8 +169,9 @@ module.exports = function(viewContext) {
             },
             html: overlaysNodes[id]
           });
-
-          addInteractions(overlaysNodes[id], id, activityInstances);
+          if (isStatic) {
+            addInteractions(overlaysNodes[id], id, calledProcessDefinitionId);
+          }
         }
       }
 
@@ -204,12 +187,8 @@ module.exports = function(viewContext) {
        * @param callActivityToInstancesMap
        */
       var addOverlays = function(callActivityToInstancesMap) {
-        Object.keys(callActivityToInstancesMap).map(function(id) {
-          return (
-            callActivityToInstancesMap[id] &&
-            addOverlayForSingleElement(id, callActivityToInstancesMap[id])
-          );
-        });
+        Object.keys(callActivityToInstancesMap).forEach( id =>
+            addOverlayForSingleElement(id, callActivityToInstancesMap[id]))
       };
 
       /**
