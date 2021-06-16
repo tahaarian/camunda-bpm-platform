@@ -224,32 +224,10 @@ module.exports = function(viewContext) {
           processData.observe(
             ['processDefinition'],
             function(processDefinition) {
-              var mzdude = processDefinition;
-              //camAPI.resource('process-definition').list({name: "FailingProcess", maxResults: 10}).then(
-              //  d => console.log(d));
-              var someThing = PluginProcessDefinitionResource.getCalledElementDefinitions({id: processDefinition.id}).$promise.then(
-                d => {
-                  addOverlays(d)
-                }
-              );
-              console.log(someThing)
-              // For each callActivity, add calledProcessInstanceId to the first activity instance
-              //  this is done so that it can be used to redirect to the calledProcessInstance.
-              /*PluginProcessInstanceResource.processInstances(
-                {id: processInstance.id},
-                function(calledPInstances) {
-                  calledPInstances.forEach(function(calledPInstance) {
-                    var instances =
-                      callActivityToInstancesMap[
-                        calledPInstance.callActivityId
-                      ];
-                    if (instances && instances.length) {
-                      instances[0].calledProcessInstanceId = calledPInstance.id;
-                    }
-                  });
-                  return addOverlays(callActivityToInstancesMap);
-                }
-              );*/}
+              camAPI.resource('process-definition').linkedCallableElements(
+                processDefinition.id,
+                  mapping  => addOverlays(mapping))
+             }
           );
       }
     }

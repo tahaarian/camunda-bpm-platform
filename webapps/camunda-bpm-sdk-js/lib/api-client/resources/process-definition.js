@@ -468,6 +468,18 @@ var ProcessDefinition = AbstractClientResource.extend(
         done: done
       });
     },
+    /**
+     * todo
+     * @param  {uuid}     id    of the process definition to be requested
+     * @param  {Function} [done]
+     */
+    linkedCallableElements: function(id, done) {
+      const path = this.path +'/' + id + '/linked-callable-elements/' ;
+
+      return this.http.get(path, {
+        done: done || noop
+      });
+    },
 
     restartAsync: function(id, params, done) {
       var url = this.path + '/' + id + '/restart-async';
@@ -478,18 +490,7 @@ var ProcessDefinition = AbstractClientResource.extend(
       });
     },
 
-    /**
-     * Todo
-     * @param  {uuid}     id    of the process definition to be requested
-     * @param  {Function} [done]
-     */
-    linkedCallableElements: function(id, done) {
-      const path = this.path +'/' + id + '/linked-callable-elements/' ;
 
-      return this.http.get(path, {
-        done: done || noop
-      });
-    }
   }
 );
 
