@@ -37,6 +37,7 @@ import org.camunda.bpm.engine.exception.cmmn.CmmnModelInstanceNotFoundException;
 import org.camunda.bpm.engine.exception.dmn.DecisionDefinitionNotFoundException;
 import org.camunda.bpm.engine.exception.dmn.DmnModelInstanceNotFoundException;
 import org.camunda.bpm.engine.impl.bpmn.behavior.CallActivityBehavior;
+import org.camunda.bpm.engine.impl.cfg.CommandChecker;
 import org.camunda.bpm.engine.impl.cfg.ProcessEngineConfigurationImpl;
 import org.camunda.bpm.engine.impl.cmd.AddIdentityLinkForProcessDefinitionCmd;
 import org.camunda.bpm.engine.impl.cmd.DeleteDeploymentCmd;
@@ -460,57 +461,62 @@ public class RepositoryServiceImpl extends ServiceImpl implements RepositoryServ
     }
 
     @Override
-    public Map<String,String> execute(CommandContext commandContext) {
+    public Map<String, String> execute(CommandContext commandContext) {
 
       RepositoryService repoService = commandContext.getProcessEngineConfiguration().getRepositoryService();
+      DeploymentCache deploymentCache = commandContext.getProcessEngineConfiguration().getDeploymentCache();
       ProcessDefinition definition;
-      try {
-        definition = repoService.getProcessDefinition(processDefinitionId);
-        List<ActivityImpl> activities = commandContext.getProcessEngineConfiguration().getDeploymentCache().findDeployedProcessDefinitionById(processDefinitionId).getActivities();
-        List<ActivityImpl> callActivities = activities.stream()
-          .filter(act -> act.getActivityBehavior() instanceof CallActivityBehavior)
-          .collect(Collectors.toList()); //remove collect
-        BpmnModelInstance model = repoService.getBpmnModelInstance(definition.getId());
-        Collection<CallActivity> callActivityModels = model.getModelElementsByType(CallActivity.class);
+      definition = repoService.getProcessDefinition(processDefinitionId);
+      List<ActivityImpl> activities = deploymentCache
+        .findDeployedProcessDefinitionById(processDefinitionId).getActivities();
+      List<ActivityImpl> callActivities = activities.stream()
+        .filter(act -> act.getActivityBehavior() instanceof CallActivityBehavior)
+        .collect(Collectors.toList());
+      // todo check for CaseCallActivityBehavior, alternatively we just need ActivityBehavior actually
 
-        Map<String, String> activityIDtoProcessIDMap = new HashMap<>();
-        for (ActivityImpl activity : callActivities) {
+      Map<String, String> activityIDtoProcessIDMap = new HashMap<>();
+      for (ActivityImpl activity : callActivities) {
+        //String tenantId = callableElement.getDefinitionTenantId(execution); breaks
+        String tenantId = definition.getTenantId();
+
+        ProcessDefinition processDefinition = null;
+        try {
           CallActivityBehavior behavior = (CallActivityBehavior) activity.getActivityBehavior();
           ExecutionEntity execution = new ExecutionEntity();
           CallableElement callableElement = behavior.getCallableElement();
           String processDefinitionKey = callableElement.getDefinitionKey(execution);
-          //String tenantId = callableElement.getDefinitionTenantId(execution); breaks
-          String tenantId = definition.getTenantId();
 
-          DeploymentCache deploymentCache = commandContext.getProcessEngineConfiguration().getDeploymentCache();
-
-          ProcessDefinitionImpl processDefinition = null;
-          // check that processDefinitionKey is not empty, else skip. and wrapp in try catch to catch expressions
+          //todo factor out with util
           if (callableElement.isLatestBinding()) {
-            processDefinition = deploymentCache.findDeployedLatestProcessDefinitionByKeyAndTenantId(processDefinitionKey, tenantId);
+            processDefinition = deploymentCache
+              .findDeployedLatestProcessDefinitionByKeyAndTenantId(processDefinitionKey, tenantId);
 
           } else if (callableElement.isDeploymentBinding()) {
             String deploymentId = callableElement.getDeploymentId();
-            processDefinition = deploymentCache.findDeployedProcessDefinitionByDeploymentAndKey(deploymentId, processDefinitionKey);
+            processDefinition = deploymentCache
+              .findDeployedProcessDefinitionByDeploymentAndKey(deploymentId, processDefinitionKey);
 
           } else if (callableElement.isVersionBinding()) {
             Integer version = callableElement.getVersion(execution);
-            processDefinition = deploymentCache.findDeployedProcessDefinitionByKeyVersionAndTenantId(processDefinitionKey, version, tenantId);
+            processDefinition = deploymentCache
+              .findDeployedProcessDefinitionByKeyVersionAndTenantId(processDefinitionKey, version, tenantId);
 
           } else if (callableElement.isVersionTagBinding()) {
             String versionTag = callableElement.getVersionTag(execution);
-            processDefinition = deploymentCache.findDeployedProcessDefinitionByKeyVersionTagAndTenantId(processDefinitionKey, versionTag, tenantId);
+            processDefinition = deploymentCache
+              .findDeployedProcessDefinitionByKeyVersionTagAndTenantId(processDefinitionKey, versionTag, tenantId);
 
           }
-          //check not null
-          // before adding check that user is authorized to read the definition
-          activityIDtoProcessIDMap.put(activity.getActivityId(),
-            processDefinition != null ? processDefinition.getId() : "");
+          for (CommandChecker checker : commandContext.getProcessEngineConfiguration().getCommandCheckers()) {
+            checker.checkReadProcessDefinition(processDefinition);
+          }
+          //todo improve
+          activityIDtoProcessIDMap.put(activity.getActivityId(), processDefinition != null ? processDefinition.getId() : "");
+        } catch (Exception ignored) {
+          activityIDtoProcessIDMap.put(activity.getActivityId(), null);
         }
-        return activityIDtoProcessIDMap;
-      } catch (ProcessEngineException e) {
-        throw e;
       }
+      return activityIDtoProcessIDMap;
     }
   }
 

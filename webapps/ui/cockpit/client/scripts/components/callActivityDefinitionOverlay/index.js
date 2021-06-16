@@ -224,9 +224,15 @@ module.exports = function(viewContext) {
           processData.observe(
             ['processDefinition'],
             function(processDefinition) {
-              camAPI.resource('process-definition').linkedCallableElements(
+              const ProcessDefinition = camAPI.resource('process-definition');
+                ProcessDefinition.linkedCallableElements(
                 processDefinition.id,
-                  mapping  => addOverlays(mapping))
+                  (err, res)  => {
+                  if(res){
+                    addOverlays(res)
+                  }
+                  console.log(err)
+                })
              }
           );
       }
