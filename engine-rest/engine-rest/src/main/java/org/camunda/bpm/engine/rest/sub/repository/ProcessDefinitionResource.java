@@ -114,4 +114,9 @@ public interface ProcessDefinitionResource {
   @Produces(MediaType.APPLICATION_JSON)
   Map<String, VariableValueDto> getFormVariables(@QueryParam("variableNames") String variableNames,
       @QueryParam(VariableResource.DESERIALIZE_VALUES_QUERY_PARAM) @DefaultValue("true") boolean deserializeValues);
+
+  @GET
+  @Path("/linked-callable-elements")
+  @Produces(MediaType.APPLICATION_JSON)
+  Map<String,String> getCalledProcesses();
 }

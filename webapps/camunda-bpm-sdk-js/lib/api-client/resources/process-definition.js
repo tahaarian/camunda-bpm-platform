@@ -476,6 +476,19 @@ var ProcessDefinition = AbstractClientResource.extend(
         data: params,
         done: done
       });
+    },
+
+    /**
+     * Todo
+     * @param  {uuid}     id    of the process definition to be requested
+     * @param  {Function} [done]
+     */
+    linkedCallableElements: function(id, done) {
+      const path = this.path +'/' + id + '/linked-callable-elements/' ;
+
+      return this.http.get(path, {
+        done: done || noop
+      });
     }
   }
 );
