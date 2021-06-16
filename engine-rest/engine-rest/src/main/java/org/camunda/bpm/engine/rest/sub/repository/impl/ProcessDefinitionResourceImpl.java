@@ -379,6 +379,11 @@ public class ProcessDefinitionResourceImpl implements ProcessDefinitionResource 
   }
 
   @Override
+  public Map<String, String> getCalledProcesses() {
+    return engine.getRepositoryService().getLinkedElementDefinitions(processDefinitionId);
+  }
+
+  @Override
   public void restartProcessInstance(RestartProcessInstanceDto restartProcessInstanceDto) {
     try {
       createRestartProcessInstanceBuilder(restartProcessInstanceDto).execute();
