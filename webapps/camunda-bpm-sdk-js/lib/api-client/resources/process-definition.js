@@ -477,7 +477,7 @@ var ProcessDefinition = AbstractClientResource.extend(
       const path = this.path +'/' + id + '/linked-callable-elements/' ;
 
       return this.http.get(path, {
-        done: done || noop
+        done: done
       });
     },
 
