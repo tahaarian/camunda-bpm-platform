@@ -472,7 +472,8 @@ public class RepositoryServiceImpl extends ServiceImpl implements RepositoryServ
       List<ActivityImpl> callActivities = activities.stream()
         .filter(act -> act.getActivityBehavior() instanceof CallActivityBehavior)
         .collect(Collectors.toList());
-      // todo check for CaseCallActivityBehavior, alternatively we just need ActivityBehavior actually
+      // todo check for CaseCallActivityBehavior, alternatively we just need ActivityBehavior actually,
+      //  or we just ignore them as instances are also not taken into account for cmmn
 
       Map<String, String> activityIDtoProcessIDMap = new HashMap<>();
       for (ActivityImpl activity : callActivities) {

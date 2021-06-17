@@ -16,6 +16,7 @@
  */
 package org.camunda.bpm.engine.test.api.repository;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -33,6 +34,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.camunda.bpm.engine.BadUserRequestException;
@@ -72,6 +74,7 @@ import org.camunda.bpm.engine.repository.DecisionRequirementsDefinitionQuery;
 import org.camunda.bpm.engine.repository.DeploymentBuilder;
 import org.camunda.bpm.engine.repository.ProcessDefinition;
 import org.camunda.bpm.engine.runtime.Job;
+import org.camunda.bpm.engine.runtime.ProcessInstance;
 import org.camunda.bpm.engine.task.Task;
 import org.camunda.bpm.engine.test.Deployment;
 import org.camunda.bpm.engine.test.RequiredHistoryLevel;
@@ -1254,6 +1257,37 @@ public class RepositoryServiceTest extends PluggableProcessEngineTest {
     assertEquals(1, processDefinition.getVersion());
 
     deleteDeployments(deploymentIds);
+  }
+
+  @Test
+  @Deployment(resources = {
+    "org/camunda/bpm/engine/test/api/repository/call-activities-with-references.bpmn",
+    "org/camunda/bpm/engine/test/api/repository/failingProcessCreateOneIncident.bpmn20.xml",
+    "org/camunda/bpm/engine/test/api/repository/first-process.bpmn20.xml",
+    "org/camunda/bpm/engine/test/api/repository/three_.cmmn"
+  })
+  public void shouldReturnCalledElementIds() {
+    //given
+    String deploymentId = repositoryService.createDeployment()
+      .addClasspathResource("org/camunda/bpm/engine/test/api/repository/second-process.bpmn20.xml").deploy().getId();
+
+    ProcessInstance processInstance = runtimeService.startProcessInstanceByKey("TestCallActivitiesWithReferences");
+
+    //when
+    Map<String, String> map = repositoryService.getLinkedElementDefinitions(processInstance.getProcessDefinitionId());
+
+    // then
+    assertThat(map).hasSize(7);//cmmn does not cout currently
+
+    assertThat(map.get("latestCA_1")).startsWith("process:2:");
+    assertThat(map.get("version_1")).startsWith("process:1:");
+    assertThat(map.get("deployment_1")).startsWith("process:1:");
+    assertThat(map.get("version_tag1")).startsWith("failingProcess:1:");
+
+    // delete second deployment
+    repositoryService.deleteDeployment(deploymentId, true, true);
+
+
   }
 
   private String deployProcessString(String processString) {
