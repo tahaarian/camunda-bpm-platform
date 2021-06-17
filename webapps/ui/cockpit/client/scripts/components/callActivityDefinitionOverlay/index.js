@@ -68,7 +68,7 @@ module.exports = function(viewContext) {
        * @param id
        * @param activityInstance (callActivity instance)
        */
-      function addInteractions(buttonOverlay, id, activityInstance) {
+      function addInteractions(buttonOverlay, id, activityInstance, makeClickable) {
         var diagramNode = angular.element('[data-element-id="' + id + '"]');
         var hideTimeout = null;
 
@@ -130,7 +130,12 @@ module.exports = function(viewContext) {
         buttonOverlay.on('mouseout', function() {
           delayHide(100);
         });
-        buttonOverlay.on('click', clickListener);
+
+        if (makeClickable) {
+          buttonOverlay.on('click', clickListener);
+        } else {
+          buttonOverlay.css('opacity', '0.6')
+        }
 
         // clear listeners
         $scope.$on('$destroy', function() {
@@ -148,7 +153,8 @@ module.exports = function(viewContext) {
         if (!overlaysNodes[id]) {
           overlaysNodes[id] = angular.element(template).hide();
           const isStatic = calledProcessDefinitionId !== null;
-          const text = isStatic ? 'Show statically linked called activity': 'Linked call activity is resolved at runtime'
+          // Todo add localizable text constant
+          const text = isStatic ? 'Show statically linked process definition': 'Linked process definition is resolved at runtime'
           overlaysNodes[id].tooltip({
             container: 'body',
             title: $translate.instant(
@@ -169,9 +175,7 @@ module.exports = function(viewContext) {
             },
             html: overlaysNodes[id]
           });
-          if (isStatic) {
-            addInteractions(overlaysNodes[id], id, calledProcessDefinitionId);
-          }
+          addInteractions(overlaysNodes[id], id, calledProcessDefinitionId, isStatic);
         }
       }
 
