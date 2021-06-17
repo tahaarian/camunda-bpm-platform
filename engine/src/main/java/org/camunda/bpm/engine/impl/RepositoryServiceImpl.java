@@ -18,15 +18,12 @@ package org.camunda.bpm.engine.impl;
 
 import java.io.InputStream;
 import java.nio.charset.Charset;
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.camunda.bpm.application.ProcessApplicationReference;
-import org.camunda.bpm.engine.ProcessEngineException;
 import org.camunda.bpm.engine.RepositoryService;
 import org.camunda.bpm.engine.exception.DeploymentResourceNotFoundException;
 import org.camunda.bpm.engine.exception.NotFoundException;
@@ -38,7 +35,6 @@ import org.camunda.bpm.engine.exception.dmn.DecisionDefinitionNotFoundException;
 import org.camunda.bpm.engine.exception.dmn.DmnModelInstanceNotFoundException;
 import org.camunda.bpm.engine.impl.bpmn.behavior.CallActivityBehavior;
 import org.camunda.bpm.engine.impl.cfg.CommandChecker;
-import org.camunda.bpm.engine.impl.cfg.ProcessEngineConfigurationImpl;
 import org.camunda.bpm.engine.impl.cmd.AddIdentityLinkForProcessDefinitionCmd;
 import org.camunda.bpm.engine.impl.cmd.DeleteDeploymentCmd;
 import org.camunda.bpm.engine.impl.cmd.DeleteIdentityLinkForProcessDefinitionCmd;
@@ -77,7 +73,7 @@ import org.camunda.bpm.engine.impl.persistence.deploy.cache.DeploymentCache;
 import org.camunda.bpm.engine.impl.persistence.entity.ExecutionEntity;
 import org.camunda.bpm.engine.impl.pvm.ReadOnlyProcessDefinition;
 import org.camunda.bpm.engine.impl.pvm.process.ActivityImpl;
-import org.camunda.bpm.engine.impl.pvm.process.ProcessDefinitionImpl;
+import org.camunda.bpm.engine.impl.repository.CallActivityMappingImpl;
 import org.camunda.bpm.engine.impl.repository.DeleteProcessDefinitionsBuilderImpl;
 import org.camunda.bpm.engine.impl.repository.DeploymentBuilderImpl;
 import org.camunda.bpm.engine.impl.repository.ProcessApplicationDeploymentBuilderImpl;
@@ -85,11 +81,8 @@ import org.camunda.bpm.engine.impl.repository.UpdateProcessDefinitionSuspensionS
 import org.camunda.bpm.engine.repository.*;
 import org.camunda.bpm.engine.task.IdentityLink;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
-import org.camunda.bpm.model.bpmn.instance.CallActivity;
 import org.camunda.bpm.model.cmmn.CmmnModelInstance;
 import org.camunda.bpm.model.dmn.DmnModelInstance;
-
-import javax.ws.rs.core.Response;
 
 /**
  * @author Tom Baeyens
@@ -452,7 +445,7 @@ public class RepositoryServiceImpl extends ServiceImpl implements RepositoryServ
     return commandExecutor.execute(new GetDeploymentDecisionRequirementsDiagramCmd(decisionRequirementsDefinitionId));
   }
 
-  protected class EngineQueryLinkedProcessDefinitionsCmd implements Command<Map<String,String>> {
+  protected class EngineQueryLinkedProcessDefinitionsCmd implements Command<List<CallActivityMapping>> {
 
     protected String processDefinitionId;
 
@@ -461,7 +454,7 @@ public class RepositoryServiceImpl extends ServiceImpl implements RepositoryServ
     }
 
     @Override
-    public Map<String, String> execute(CommandContext commandContext) {
+    public List<CallActivityMapping> execute(CommandContext commandContext) {
 
       RepositoryService repoService = commandContext.getProcessEngineConfiguration().getRepositoryService();
       DeploymentCache deploymentCache = commandContext.getProcessEngineConfiguration().getDeploymentCache();
@@ -475,7 +468,7 @@ public class RepositoryServiceImpl extends ServiceImpl implements RepositoryServ
       // todo check for CaseCallActivityBehavior, alternatively we just need ActivityBehavior actually,
       //  or we just ignore them as instances are also not taken into account for cmmn
 
-      Map<String, String> activityIDtoProcessIDMap = new HashMap<>();
+      List<CallActivityMapping> mappings = new ArrayList<>();
       for (ActivityImpl activity : callActivities) {
         //String tenantId = callableElement.getDefinitionTenantId(execution); breaks
         String tenantId = definition.getTenantId();
@@ -512,17 +505,17 @@ public class RepositoryServiceImpl extends ServiceImpl implements RepositoryServ
             checker.checkReadProcessDefinition(processDefinition);
           }
           //todo improve
-          activityIDtoProcessIDMap.put(activity.getActivityId(), processDefinition != null ? processDefinition.getId() : "");
+          mappings.add(new CallActivityMappingImpl(activity.getActivityId(), processDefinition != null ? processDefinition.getId() : null));
         } catch (Exception ignored) {
-          activityIDtoProcessIDMap.put(activity.getActivityId(), null);
+          mappings.add(new CallActivityMappingImpl(activity.getActivityId(), null));
         }
       }
-      return activityIDtoProcessIDMap;
+      return mappings;
     }
   }
 
   @Override
-  public Map<String, String> getLinkedElementDefinitions(String id) {
+  public List<CallActivityMapping> getCallActivityMappings(String id) {
 
     return commandExecutor.execute(new EngineQueryLinkedProcessDefinitionsCmd(id));
 

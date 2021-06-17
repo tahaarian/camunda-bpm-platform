@@ -233,7 +233,11 @@ module.exports = function(viewContext) {
                 processDefinition.id,
                   (err, res)  => {
                   if(res){
-                    addOverlays(res)
+                    const mapping = res.reduce((map, dto) => {
+                      map[dto.callActivityId] = dto.processDefinitionId
+                      return map
+                    }, {})
+                    addOverlays(mapping)
                   }
                   console.log(err)
                 })

@@ -19,7 +19,6 @@ package org.camunda.bpm.engine;
 import java.io.InputStream;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 import org.camunda.bpm.application.ProcessApplicationReference;
 import org.camunda.bpm.engine.authorization.Permissions;
@@ -29,6 +28,7 @@ import org.camunda.bpm.engine.authorization.Resources;
 import org.camunda.bpm.engine.delegate.ExecutionListener;
 import org.camunda.bpm.engine.exception.NotFoundException;
 import org.camunda.bpm.engine.exception.NotValidException;
+import org.camunda.bpm.engine.repository.CallActivityMapping;
 import org.camunda.bpm.engine.repository.CaseDefinition;
 import org.camunda.bpm.engine.repository.CaseDefinitionQuery;
 import org.camunda.bpm.engine.repository.DecisionDefinition;
@@ -797,6 +797,6 @@ public interface RepositoryService {
    */
   InputStream getDecisionRequirementsDiagram(String decisionRequirementsDefinitionId);
 
-  Map<String, String> getLinkedElementDefinitions(String id);
+  List<CallActivityMapping> getCallActivityMappings(String id);
 }
 

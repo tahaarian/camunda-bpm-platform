@@ -63,8 +63,10 @@ import org.camunda.bpm.engine.impl.persistence.deploy.cache.DeploymentCache;
 import org.camunda.bpm.engine.impl.pvm.PvmActivity;
 import org.camunda.bpm.engine.impl.pvm.PvmTransition;
 import org.camunda.bpm.engine.impl.pvm.ReadOnlyProcessDefinition;
+import org.camunda.bpm.engine.impl.repository.CallActivityMappingImpl;
 import org.camunda.bpm.engine.impl.util.ClockUtil;
 import org.camunda.bpm.engine.impl.util.IoUtil;
+import org.camunda.bpm.engine.repository.CallActivityMapping;
 import org.camunda.bpm.engine.repository.CaseDefinition;
 import org.camunda.bpm.engine.repository.CaseDefinitionQuery;
 import org.camunda.bpm.engine.repository.DecisionDefinition;
@@ -1274,15 +1276,29 @@ public class RepositoryServiceTest extends PluggableProcessEngineTest {
     ProcessInstance processInstance = runtimeService.startProcessInstanceByKey("TestCallActivitiesWithReferences");
 
     //when
-    Map<String, String> map = repositoryService.getLinkedElementDefinitions(processInstance.getProcessDefinitionId());
+    List<CallActivityMapping> map = repositoryService.getCallActivityMappings(processInstance.getProcessDefinitionId());
 
     // then
     assertThat(map).hasSize(7);//cmmn does not cout currently
-
-    assertThat(map.get("latestCA_1")).startsWith("process:2:");
-    assertThat(map.get("version_1")).startsWith("process:1:");
-    assertThat(map.get("deployment_1")).startsWith("process:1:");
-    assertThat(map.get("version_tag1")).startsWith("failingProcess:1:");
+    assertThat(map)
+      .usingElementComparator((o1, o2) -> {
+        //todo clean this up
+        if (o1.getCallActivityId().equals(o2.getCallActivityId())
+          && o1.getProcessDefinitionId() == o2.getProcessDefinitionId()) {
+          return 0;
+        }
+        else if(o1.getCallActivityId().equals(o2.getCallActivityId())
+          && o1.getProcessDefinitionId().startsWith(o2.getProcessDefinitionId())){
+          return 0;
+        } else {
+          return -1;
+        }
+    }).contains(
+      new CallActivityMappingImpl("latestCA_1","process:2:"),
+      new CallActivityMappingImpl("version_1","process:1:"),
+      new CallActivityMappingImpl("deployment_1","process:1:"),
+      new CallActivityMappingImpl("version_tag1","failingProcess:1:")
+    );
 
     // delete second deployment
     repositoryService.deleteDeployment(deploymentId, true, true);
