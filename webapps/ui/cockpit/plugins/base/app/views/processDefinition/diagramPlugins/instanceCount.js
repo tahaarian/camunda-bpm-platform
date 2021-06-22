@@ -88,6 +88,7 @@ module.exports = [
             }
 
             function removeOverlays() {
+              //Todo: this also removes all links for call activies
               Array.from(
                 document.getElementsByClassName('djs-overlay')
               ).forEach(function(element) {

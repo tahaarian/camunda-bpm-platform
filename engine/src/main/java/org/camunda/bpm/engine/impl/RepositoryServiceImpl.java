@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 
 import org.camunda.bpm.application.ProcessApplicationReference;
 import org.camunda.bpm.engine.RepositoryService;
+import org.camunda.bpm.engine.delegate.VariableScope;
 import org.camunda.bpm.engine.exception.DeploymentResourceNotFoundException;
 import org.camunda.bpm.engine.exception.NotFoundException;
 import org.camunda.bpm.engine.exception.NotValidException;
@@ -67,10 +68,10 @@ import org.camunda.bpm.engine.impl.dmn.cmd.GetDeploymentDecisionRequirementsMode
 import org.camunda.bpm.engine.impl.dmn.cmd.GetDeploymentDmnModelInstanceCmd;
 import org.camunda.bpm.engine.impl.dmn.entity.repository.DecisionDefinitionQueryImpl;
 import org.camunda.bpm.engine.impl.dmn.entity.repository.DecisionRequirementsDefinitionQueryImpl;
+import org.camunda.bpm.engine.impl.el.StartProcessVariableScope;
 import org.camunda.bpm.engine.impl.interceptor.Command;
 import org.camunda.bpm.engine.impl.interceptor.CommandContext;
 import org.camunda.bpm.engine.impl.persistence.deploy.cache.DeploymentCache;
-import org.camunda.bpm.engine.impl.persistence.entity.ExecutionEntity;
 import org.camunda.bpm.engine.impl.pvm.ReadOnlyProcessDefinition;
 import org.camunda.bpm.engine.impl.pvm.process.ActivityImpl;
 import org.camunda.bpm.engine.impl.repository.CallActivityMappingImpl;
@@ -476,9 +477,9 @@ public class RepositoryServiceImpl extends ServiceImpl implements RepositoryServ
         ProcessDefinition processDefinition = null;
         try {
           CallActivityBehavior behavior = (CallActivityBehavior) activity.getActivityBehavior();
-          ExecutionEntity execution = new ExecutionEntity();
+          VariableScope variableScope = new StartProcessVariableScope();
           CallableElement callableElement = behavior.getCallableElement();
-          String processDefinitionKey = callableElement.getDefinitionKey(execution);
+          String processDefinitionKey = callableElement.getDefinitionKey(variableScope);
 
           //todo factor out with util
           if (callableElement.isLatestBinding()) {
@@ -491,12 +492,12 @@ public class RepositoryServiceImpl extends ServiceImpl implements RepositoryServ
               .findDeployedProcessDefinitionByDeploymentAndKey(deploymentId, processDefinitionKey);
 
           } else if (callableElement.isVersionBinding()) {
-            Integer version = callableElement.getVersion(execution);
+            Integer version = callableElement.getVersion(variableScope);
             processDefinition = deploymentCache
               .findDeployedProcessDefinitionByKeyVersionAndTenantId(processDefinitionKey, version, tenantId);
 
           } else if (callableElement.isVersionTagBinding()) {
-            String versionTag = callableElement.getVersionTag(execution);
+            String versionTag = callableElement.getVersionTag(variableScope);
             processDefinition = deploymentCache
               .findDeployedProcessDefinitionByKeyVersionTagAndTenantId(processDefinitionKey, versionTag, tenantId);
 
