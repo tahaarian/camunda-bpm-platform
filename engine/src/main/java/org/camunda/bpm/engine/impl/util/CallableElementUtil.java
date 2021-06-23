@@ -20,6 +20,12 @@ import org.camunda.bpm.engine.delegate.VariableScope;
 import org.camunda.bpm.engine.impl.cmmn.model.CmmnCaseDefinition;
 import org.camunda.bpm.engine.impl.context.Context;
 import org.camunda.bpm.engine.impl.core.model.BaseCallableElement;
+import org.camunda.bpm.engine.impl.core.model.CallableElement;
+import org.camunda.bpm.engine.impl.core.model.DefaultCallableElementTenantIdProvider;
+import org.camunda.bpm.engine.impl.core.variable.mapping.value.ConstantValueProvider;
+import org.camunda.bpm.engine.impl.core.variable.mapping.value.NullValueProvider;
+import org.camunda.bpm.engine.impl.core.variable.mapping.value.ParameterValueProvider;
+import org.camunda.bpm.engine.impl.el.ElValueProvider;
 import org.camunda.bpm.engine.impl.persistence.deploy.cache.DeploymentCache;
 import org.camunda.bpm.engine.impl.pvm.process.ProcessDefinitionImpl;
 import org.camunda.bpm.engine.repository.DecisionDefinition;
@@ -110,6 +116,25 @@ public class CallableElementUtil {
     }
 
     return decisionDefinition;
+  }
+
+  public static boolean hasDynamicBindings(CallableElement callable) {
+    return isProviderDynamic(callable.getTenantIdProvider())
+      || isProviderDynamic(callable.getDefinitionKeyValueProvider())
+      || isProviderDynamic(callable.getVersionValueProvider())
+      || isProviderDynamic(callable.getVersionTagValueProvider());
+  }
+
+  private static boolean isProviderDynamic(ParameterValueProvider provider){
+    if (provider instanceof ElValueProvider){
+      return !((ElValueProvider) provider).getExpression().isLiteralText();
+    } else if (provider instanceof NullValueProvider
+      || provider instanceof ConstantValueProvider
+      || provider instanceof DefaultCallableElementTenantIdProvider){
+      return false;
+    } else {
+      return true;
+    }
   }
 
 }

@@ -479,31 +479,34 @@ public class RepositoryServiceImpl extends ServiceImpl implements RepositoryServ
           CallActivityBehavior behavior = (CallActivityBehavior) activity.getActivityBehavior();
           VariableScope variableScope = new StartProcessVariableScope();
           CallableElement callableElement = behavior.getCallableElement();
-          String processDefinitionKey = callableElement.getDefinitionKey(variableScope);
 
-          //todo factor out with util
-          if (callableElement.isLatestBinding()) {
-            processDefinition = deploymentCache
-              .findDeployedLatestProcessDefinitionByKeyAndTenantId(processDefinitionKey, tenantId);
+          if (!callableElement.hasDynamicBindings()) {
+            String processDefinitionKey = callableElement.getDefinitionKey(variableScope);
 
-          } else if (callableElement.isDeploymentBinding()) {
-            String deploymentId = callableElement.getDeploymentId();
-            processDefinition = deploymentCache
-              .findDeployedProcessDefinitionByDeploymentAndKey(deploymentId, processDefinitionKey);
+            //todo factor out with util
+            if (callableElement.isLatestBinding()) {
+              processDefinition = deploymentCache
+                .findDeployedLatestProcessDefinitionByKeyAndTenantId(processDefinitionKey, tenantId);
 
-          } else if (callableElement.isVersionBinding()) {
-            Integer version = callableElement.getVersion(variableScope);
-            processDefinition = deploymentCache
-              .findDeployedProcessDefinitionByKeyVersionAndTenantId(processDefinitionKey, version, tenantId);
+            } else if (callableElement.isDeploymentBinding()) {
+              String deploymentId = callableElement.getDeploymentId();
+              processDefinition = deploymentCache
+                .findDeployedProcessDefinitionByDeploymentAndKey(deploymentId, processDefinitionKey);
 
-          } else if (callableElement.isVersionTagBinding()) {
-            String versionTag = callableElement.getVersionTag(variableScope);
-            processDefinition = deploymentCache
-              .findDeployedProcessDefinitionByKeyVersionTagAndTenantId(processDefinitionKey, versionTag, tenantId);
+            } else if (callableElement.isVersionBinding()) {
+              Integer version = callableElement.getVersion(variableScope);
+              processDefinition = deploymentCache
+                .findDeployedProcessDefinitionByKeyVersionAndTenantId(processDefinitionKey, version, tenantId);
 
-          }
-          for (CommandChecker checker : commandContext.getProcessEngineConfiguration().getCommandCheckers()) {
-            checker.checkReadProcessDefinition(processDefinition);
+            } else if (callableElement.isVersionTagBinding()) {
+              String versionTag = callableElement.getVersionTag(variableScope);
+              processDefinition = deploymentCache
+                .findDeployedProcessDefinitionByKeyVersionTagAndTenantId(processDefinitionKey, versionTag, tenantId);
+
+            }
+            for (CommandChecker checker : commandContext.getProcessEngineConfiguration().getCommandCheckers()) {
+              checker.checkReadProcessDefinition(processDefinition);
+            }
           }
           //todo improve
           mappings.add(new CallActivityMappingImpl(activity.getActivityId(), processDefinition != null ? processDefinition.getId() : null));

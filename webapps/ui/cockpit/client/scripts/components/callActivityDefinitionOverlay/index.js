@@ -134,7 +134,8 @@ module.exports = function(viewContext) {
         if (makeClickable) {
           buttonOverlay.on('click', clickListener);
         } else {
-          buttonOverlay.css('opacity', '0.6')
+          buttonOverlay.css('opacity', '0.6');
+          //buttonOverlay.prop('disabled', true);
         }
 
         // clear listeners

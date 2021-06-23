@@ -35,6 +35,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.camunda.bpm.engine.BadUserRequestException;
@@ -1279,16 +1280,13 @@ public class RepositoryServiceTest extends PluggableProcessEngineTest {
     List<CallActivityMapping> map = repositoryService.getCallActivityMappings(processInstance.getProcessDefinitionId());
 
     // then
-    assertThat(map).hasSize(7);//cmmn does not cout currently
+    assertThat(map).hasSize(7);//cmmn does not count currently
     assertThat(map)
-      .usingElementComparator((o1, o2) -> {
+      .usingElementComparator((result, test) -> {
         //todo clean this up
-        if (o1.getCallActivityId().equals(o2.getCallActivityId())
-          && o1.getProcessDefinitionId() == o2.getProcessDefinitionId()) {
-          return 0;
-        }
-        else if(o1.getCallActivityId().equals(o2.getCallActivityId())
-          && o1.getProcessDefinitionId().startsWith(o2.getProcessDefinitionId())){
+        if (result.getCallActivityId().equals(test.getCallActivityId()) &&
+          (Objects.equals(result.getProcessDefinitionId(), test.getProcessDefinitionId()) ||
+          result.getProcessDefinitionId().startsWith(test.getProcessDefinitionId()))) {
           return 0;
         } else {
           return -1;
@@ -1297,7 +1295,10 @@ public class RepositoryServiceTest extends PluggableProcessEngineTest {
       new CallActivityMappingImpl("latestCA_1","process:2:"),
       new CallActivityMappingImpl("version_1","process:1:"),
       new CallActivityMappingImpl("deployment_1","process:1:"),
-      new CallActivityMappingImpl("version_tag1","failingProcess:1:")
+      new CallActivityMappingImpl("version_tag1","failingProcess:1:"),
+      new CallActivityMappingImpl("no_reference_1",null),
+      new CallActivityMappingImpl("incorrect_reference_1",null),
+      new CallActivityMappingImpl("dynamic_reference_1",null)
     );
 
     // delete second deployment
