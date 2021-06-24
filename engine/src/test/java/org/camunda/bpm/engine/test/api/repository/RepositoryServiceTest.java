@@ -34,9 +34,9 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.camunda.bpm.engine.BadUserRequestException;
 import org.camunda.bpm.engine.EntityTypes;
@@ -51,9 +51,11 @@ import org.camunda.bpm.engine.exception.NotValidException;
 import org.camunda.bpm.engine.history.UserOperationLogEntry;
 import org.camunda.bpm.engine.history.UserOperationLogQuery;
 import org.camunda.bpm.engine.impl.RepositoryServiceImpl;
+import org.camunda.bpm.engine.impl.bpmn.behavior.CallActivityBehavior;
 import org.camunda.bpm.engine.impl.bpmn.deployer.BpmnDeployer;
 import org.camunda.bpm.engine.impl.bpmn.parser.BpmnParse;
 import org.camunda.bpm.engine.impl.cfg.StandaloneProcessEngineConfiguration;
+import org.camunda.bpm.engine.impl.core.model.CallableElement;
 import org.camunda.bpm.engine.impl.dmn.entity.repository.DecisionDefinitionEntity;
 import org.camunda.bpm.engine.impl.history.event.UserOperationLogEntryEventEntity;
 import org.camunda.bpm.engine.impl.interceptor.Command;
@@ -64,6 +66,8 @@ import org.camunda.bpm.engine.impl.persistence.deploy.cache.DeploymentCache;
 import org.camunda.bpm.engine.impl.pvm.PvmActivity;
 import org.camunda.bpm.engine.impl.pvm.PvmTransition;
 import org.camunda.bpm.engine.impl.pvm.ReadOnlyProcessDefinition;
+import org.camunda.bpm.engine.impl.pvm.process.ActivityImpl;
+import org.camunda.bpm.engine.impl.pvm.process.ProcessDefinitionImpl;
 import org.camunda.bpm.engine.impl.repository.CallActivityMappingImpl;
 import org.camunda.bpm.engine.impl.util.ClockUtil;
 import org.camunda.bpm.engine.impl.util.IoUtil;
@@ -77,7 +81,6 @@ import org.camunda.bpm.engine.repository.DecisionRequirementsDefinitionQuery;
 import org.camunda.bpm.engine.repository.DeploymentBuilder;
 import org.camunda.bpm.engine.repository.ProcessDefinition;
 import org.camunda.bpm.engine.runtime.Job;
-import org.camunda.bpm.engine.runtime.ProcessInstance;
 import org.camunda.bpm.engine.task.Task;
 import org.camunda.bpm.engine.test.Deployment;
 import org.camunda.bpm.engine.test.RequiredHistoryLevel;
@@ -89,6 +92,7 @@ import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 /**
  * @author Frederik Heremans
@@ -1274,10 +1278,13 @@ public class RepositoryServiceTest extends PluggableProcessEngineTest {
     String deploymentId = repositoryService.createDeployment()
       .addClasspathResource("org/camunda/bpm/engine/test/api/repository/second-process.bpmn20.xml").deploy().getId();
 
-    ProcessInstance processInstance = runtimeService.startProcessInstanceByKey("TestCallActivitiesWithReferences");
+    ProcessDefinition processDefinition = repositoryService
+      .createProcessDefinitionQuery()
+      .processDefinitionKey("TestCallActivitiesWithReferences")
+      .singleResult();
 
     //when
-    List<CallActivityMapping> map = repositoryService.getCallActivityMappings(processInstance.getProcessDefinitionId());
+    List<CallActivityMapping> map = repositoryService.getCallActivityMappings(processDefinition.getId());
 
     // then
     assertThat(map).hasSize(7);//cmmn does not count currently
@@ -1303,7 +1310,43 @@ public class RepositoryServiceTest extends PluggableProcessEngineTest {
 
     // delete second deployment
     repositoryService.deleteDeployment(deploymentId, true, true);
+  }
 
+  @Test
+  @Deployment(resources = { "org/camunda/bpm/engine/test/api/repository/dynamic-call-activities.bpmn" })
+  public void shouldNotTryToResolveDynamicCalledElementBinding() {
+    //given
+    ProcessDefinition processDefinition = repositoryService
+      .createProcessDefinitionQuery()
+      .processDefinitionKey("DynamicCallActivities")
+      .singleResult();
+
+    List<ActivityImpl> activities = ((ProcessDefinitionImpl) repositoryService
+      .getProcessDefinition(processDefinition.getId())).getActivities().stream()
+      .filter(act -> act.getActivityBehavior() instanceof CallActivityBehavior)
+      .map(activity -> {
+        CallableElement callableElement = ((CallActivityBehavior) activity.getActivityBehavior()).getCallableElement();
+        CallableElement spy = Mockito.spy(callableElement);
+        ((CallActivityBehavior) activity.getActivityBehavior()).setCallableElement(spy);
+        return activity;
+      }).collect(Collectors.toList());
+
+    //when
+    List<CallActivityMapping> map = repositoryService.getCallActivityMappings(processDefinition.getId());
+
+    //then
+    //check that we never try to resolve any of the dynamic bindings
+    for (ActivityImpl activity : activities) {
+      CallableElement callableElement = ((CallActivityBehavior) activity.getActivityBehavior()).getCallableElement();
+      Mockito.verify(callableElement, Mockito.never()).getDefinitionKey(Mockito.anyObject());
+      Mockito.verify(callableElement, Mockito.never()).getVersion(Mockito.anyObject());
+      Mockito.verify(callableElement, Mockito.never()).getVersionTag(Mockito.anyObject());
+      Mockito.verify(callableElement, Mockito.times(1)).hasDynamicBindings();
+    }
+    for (CallActivityMapping mapping: map) {
+      assertThat(mapping.getProcessDefinitionId()).isNull();
+    }
+    assertThat(map).hasSize(3); //cmmn does not count currently
 
   }
 
