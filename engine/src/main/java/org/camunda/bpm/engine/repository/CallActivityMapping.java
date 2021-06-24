@@ -1,5 +1,3 @@
-package org.camunda.bpm.engine.repository;
-
 /*
  * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
  * under one or more contributor license agreements. See the NOTICE file
@@ -16,6 +14,8 @@ package org.camunda.bpm.engine.repository;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.camunda.bpm.engine.repository;
+
 public interface CallActivityMapping {
 
   String getCallActivityId();

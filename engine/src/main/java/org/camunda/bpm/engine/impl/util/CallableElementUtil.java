@@ -26,7 +26,9 @@ import org.camunda.bpm.engine.impl.core.variable.mapping.value.ConstantValueProv
 import org.camunda.bpm.engine.impl.core.variable.mapping.value.NullValueProvider;
 import org.camunda.bpm.engine.impl.core.variable.mapping.value.ParameterValueProvider;
 import org.camunda.bpm.engine.impl.el.ElValueProvider;
+import org.camunda.bpm.engine.impl.el.StartProcessVariableScope;
 import org.camunda.bpm.engine.impl.persistence.deploy.cache.DeploymentCache;
+import org.camunda.bpm.engine.impl.persistence.entity.ProcessDefinitionEntity;
 import org.camunda.bpm.engine.impl.pvm.process.ProcessDefinitionImpl;
 import org.camunda.bpm.engine.repository.DecisionDefinition;
 
@@ -46,24 +48,43 @@ public class CallableElementUtil {
     String processDefinitionKey = callableElement.getDefinitionKey(execution);
     String tenantId = callableElement.getDefinitionTenantId(execution);
 
+    return getProcessDefinition(execution, callableElement, processDefinitionKey, tenantId);
+  }
+
+  public static ProcessDefinitionEntity getStaticallyBoundProcessDefinition(BaseCallableElement callableElement, String tenantId) {
+    if(callableElement.hasDynamicBindings()){
+      return null;
+    }
+
+    VariableScope emptyVariableScope = new StartProcessVariableScope();
+    String processDefinitionKey = callableElement.getDefinitionKey(emptyVariableScope);
+    return getProcessDefinition(emptyVariableScope, callableElement, processDefinitionKey, tenantId);
+  }
+
+  private static ProcessDefinitionEntity getProcessDefinition(VariableScope execution,
+    BaseCallableElement callableElement, String processDefinitionKey, String tenantId) {
     DeploymentCache deploymentCache = getDeploymentCache();
 
-    ProcessDefinitionImpl processDefinition = null;
+    ProcessDefinitionEntity processDefinition = null;
 
     if (callableElement.isLatestBinding()) {
-      processDefinition = deploymentCache.findDeployedLatestProcessDefinitionByKeyAndTenantId(processDefinitionKey, tenantId);
+      processDefinition = deploymentCache.findDeployedLatestProcessDefinitionByKeyAndTenantId(processDefinitionKey,
+        tenantId);
 
     } else if (callableElement.isDeploymentBinding()) {
       String deploymentId = callableElement.getDeploymentId();
-      processDefinition = deploymentCache.findDeployedProcessDefinitionByDeploymentAndKey(deploymentId, processDefinitionKey);
+      processDefinition = deploymentCache.findDeployedProcessDefinitionByDeploymentAndKey(deploymentId,
+        processDefinitionKey);
 
     } else if (callableElement.isVersionBinding()) {
       Integer version = callableElement.getVersion(execution);
-      processDefinition = deploymentCache.findDeployedProcessDefinitionByKeyVersionAndTenantId(processDefinitionKey, version, tenantId);
+      processDefinition = deploymentCache.findDeployedProcessDefinitionByKeyVersionAndTenantId(processDefinitionKey, version,
+        tenantId);
 
     } else if (callableElement.isVersionTagBinding()) {
       String versionTag = callableElement.getVersionTag(execution);
-      processDefinition = deploymentCache.findDeployedProcessDefinitionByKeyVersionTagAndTenantId(processDefinitionKey, versionTag, tenantId);
+      processDefinition = deploymentCache.findDeployedProcessDefinitionByKeyVersionTagAndTenantId(processDefinitionKey, versionTag,
+        tenantId);
 
     }
 

@@ -16,16 +16,8 @@
  */
 package org.camunda.bpm.engine.impl;
 
-import java.io.InputStream;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import org.camunda.bpm.application.ProcessApplicationReference;
 import org.camunda.bpm.engine.RepositoryService;
-import org.camunda.bpm.engine.delegate.VariableScope;
 import org.camunda.bpm.engine.exception.DeploymentResourceNotFoundException;
 import org.camunda.bpm.engine.exception.NotFoundException;
 import org.camunda.bpm.engine.exception.NotValidException;
@@ -34,8 +26,6 @@ import org.camunda.bpm.engine.exception.cmmn.CaseDefinitionNotFoundException;
 import org.camunda.bpm.engine.exception.cmmn.CmmnModelInstanceNotFoundException;
 import org.camunda.bpm.engine.exception.dmn.DecisionDefinitionNotFoundException;
 import org.camunda.bpm.engine.exception.dmn.DmnModelInstanceNotFoundException;
-import org.camunda.bpm.engine.impl.bpmn.behavior.CallActivityBehavior;
-import org.camunda.bpm.engine.impl.cfg.CommandChecker;
 import org.camunda.bpm.engine.impl.cmd.AddIdentityLinkForProcessDefinitionCmd;
 import org.camunda.bpm.engine.impl.cmd.DeleteDeploymentCmd;
 import org.camunda.bpm.engine.impl.cmd.DeleteIdentityLinkForProcessDefinitionCmd;
@@ -50,6 +40,7 @@ import org.camunda.bpm.engine.impl.cmd.GetDeploymentResourceForIdCmd;
 import org.camunda.bpm.engine.impl.cmd.GetDeploymentResourceNamesCmd;
 import org.camunda.bpm.engine.impl.cmd.GetDeploymentResourcesCmd;
 import org.camunda.bpm.engine.impl.cmd.GetIdentityLinksForProcessDefinitionCmd;
+import org.camunda.bpm.engine.impl.cmd.GetStaticCallActivityMappingsCmd;
 import org.camunda.bpm.engine.impl.cmd.UpdateDecisionDefinitionHistoryTimeToLiveCmd;
 import org.camunda.bpm.engine.impl.cmd.UpdateProcessDefinitionHistoryTimeToLiveCmd;
 import org.camunda.bpm.engine.impl.cmmn.cmd.GetDeploymentCaseDefinitionCmd;
@@ -58,7 +49,6 @@ import org.camunda.bpm.engine.impl.cmmn.cmd.GetDeploymentCaseModelCmd;
 import org.camunda.bpm.engine.impl.cmmn.cmd.GetDeploymentCmmnModelInstanceCmd;
 import org.camunda.bpm.engine.impl.cmmn.cmd.UpdateCaseDefinitionHistoryTimeToLiveCmd;
 import org.camunda.bpm.engine.impl.cmmn.entity.repository.CaseDefinitionQueryImpl;
-import org.camunda.bpm.engine.impl.core.model.CallableElement;
 import org.camunda.bpm.engine.impl.dmn.cmd.GetDeploymentDecisionDefinitionCmd;
 import org.camunda.bpm.engine.impl.dmn.cmd.GetDeploymentDecisionDiagramCmd;
 import org.camunda.bpm.engine.impl.dmn.cmd.GetDeploymentDecisionModelCmd;
@@ -68,22 +58,38 @@ import org.camunda.bpm.engine.impl.dmn.cmd.GetDeploymentDecisionRequirementsMode
 import org.camunda.bpm.engine.impl.dmn.cmd.GetDeploymentDmnModelInstanceCmd;
 import org.camunda.bpm.engine.impl.dmn.entity.repository.DecisionDefinitionQueryImpl;
 import org.camunda.bpm.engine.impl.dmn.entity.repository.DecisionRequirementsDefinitionQueryImpl;
-import org.camunda.bpm.engine.impl.el.StartProcessVariableScope;
-import org.camunda.bpm.engine.impl.interceptor.Command;
-import org.camunda.bpm.engine.impl.interceptor.CommandContext;
-import org.camunda.bpm.engine.impl.persistence.deploy.cache.DeploymentCache;
 import org.camunda.bpm.engine.impl.pvm.ReadOnlyProcessDefinition;
-import org.camunda.bpm.engine.impl.pvm.process.ActivityImpl;
-import org.camunda.bpm.engine.impl.repository.CallActivityMappingImpl;
 import org.camunda.bpm.engine.impl.repository.DeleteProcessDefinitionsBuilderImpl;
 import org.camunda.bpm.engine.impl.repository.DeploymentBuilderImpl;
 import org.camunda.bpm.engine.impl.repository.ProcessApplicationDeploymentBuilderImpl;
 import org.camunda.bpm.engine.impl.repository.UpdateProcessDefinitionSuspensionStateBuilderImpl;
-import org.camunda.bpm.engine.repository.*;
+import org.camunda.bpm.engine.repository.CallActivityMapping;
+import org.camunda.bpm.engine.repository.CaseDefinition;
+import org.camunda.bpm.engine.repository.CaseDefinitionQuery;
+import org.camunda.bpm.engine.repository.DecisionDefinition;
+import org.camunda.bpm.engine.repository.DecisionDefinitionQuery;
+import org.camunda.bpm.engine.repository.DecisionRequirementsDefinition;
+import org.camunda.bpm.engine.repository.DecisionRequirementsDefinitionQuery;
+import org.camunda.bpm.engine.repository.DeleteProcessDefinitionsBuilder;
+import org.camunda.bpm.engine.repository.DeleteProcessDefinitionsSelectBuilder;
+import org.camunda.bpm.engine.repository.DeploymentBuilder;
+import org.camunda.bpm.engine.repository.DeploymentQuery;
+import org.camunda.bpm.engine.repository.DeploymentWithDefinitions;
+import org.camunda.bpm.engine.repository.DiagramLayout;
+import org.camunda.bpm.engine.repository.ProcessApplicationDeploymentBuilder;
+import org.camunda.bpm.engine.repository.ProcessDefinition;
+import org.camunda.bpm.engine.repository.ProcessDefinitionQuery;
+import org.camunda.bpm.engine.repository.Resource;
+import org.camunda.bpm.engine.repository.UpdateProcessDefinitionSuspensionStateSelectBuilder;
 import org.camunda.bpm.engine.task.IdentityLink;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.cmmn.CmmnModelInstance;
 import org.camunda.bpm.model.dmn.DmnModelInstance;
+
+import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.util.Date;
+import java.util.List;
 
 /**
  * @author Tom Baeyens
@@ -446,84 +452,9 @@ public class RepositoryServiceImpl extends ServiceImpl implements RepositoryServ
     return commandExecutor.execute(new GetDeploymentDecisionRequirementsDiagramCmd(decisionRequirementsDefinitionId));
   }
 
-  protected class EngineQueryLinkedProcessDefinitionsCmd implements Command<List<CallActivityMapping>> {
-
-    protected String processDefinitionId;
-
-    public EngineQueryLinkedProcessDefinitionsCmd(String processDefinitionId) {
-      this.processDefinitionId = processDefinitionId;
-    }
-
-    @Override
-    public List<CallActivityMapping> execute(CommandContext commandContext) {
-
-      RepositoryService repoService = commandContext.getProcessEngineConfiguration().getRepositoryService();
-      DeploymentCache deploymentCache = commandContext.getProcessEngineConfiguration().getDeploymentCache();
-      ProcessDefinition definition;
-      definition = repoService.getProcessDefinition(processDefinitionId);
-      List<ActivityImpl> activities = deploymentCache
-        .findDeployedProcessDefinitionById(processDefinitionId).getActivities();
-      List<ActivityImpl> callActivities = activities.stream()
-        .filter(act -> act.getActivityBehavior() instanceof CallActivityBehavior)
-        .collect(Collectors.toList());
-      // todo check for CaseCallActivityBehavior, alternatively we just need ActivityBehavior actually,
-      //  or we just ignore them as instances are also not taken into account for cmmn
-
-      List<CallActivityMapping> mappings = new ArrayList<>();
-      for (ActivityImpl activity : callActivities) {
-        //String tenantId = callableElement.getDefinitionTenantId(execution); breaks
-        String tenantId = definition.getTenantId();
-
-        ProcessDefinition processDefinition = null;
-        try {
-          CallActivityBehavior behavior = (CallActivityBehavior) activity.getActivityBehavior();
-          VariableScope variableScope = new StartProcessVariableScope();
-          CallableElement callableElement = behavior.getCallableElement();
-
-          if (!callableElement.hasDynamicBindings()) {
-            String processDefinitionKey = callableElement.getDefinitionKey(variableScope);
-
-            //todo factor out with util
-            if (callableElement.isLatestBinding()) {
-              processDefinition = deploymentCache
-                .findDeployedLatestProcessDefinitionByKeyAndTenantId(processDefinitionKey, tenantId);
-
-            } else if (callableElement.isDeploymentBinding()) {
-              String deploymentId = callableElement.getDeploymentId();
-              processDefinition = deploymentCache
-                .findDeployedProcessDefinitionByDeploymentAndKey(deploymentId, processDefinitionKey);
-
-            } else if (callableElement.isVersionBinding()) {
-              Integer version = callableElement.getVersion(variableScope);
-              processDefinition = deploymentCache
-                .findDeployedProcessDefinitionByKeyVersionAndTenantId(processDefinitionKey, version, tenantId);
-
-            } else if (callableElement.isVersionTagBinding()) {
-              String versionTag = callableElement.getVersionTag(variableScope);
-              processDefinition = deploymentCache
-                .findDeployedProcessDefinitionByKeyVersionTagAndTenantId(processDefinitionKey, versionTag, tenantId);
-
-            }
-            for (CommandChecker checker : commandContext.getProcessEngineConfiguration().getCommandCheckers()) {
-              checker.checkReadProcessDefinition(processDefinition);
-            }
-          }
-          //todo improve
-          mappings.add(new CallActivityMappingImpl(activity.getActivityId(), processDefinition != null ? processDefinition.getId() : null));
-        } catch (Exception ignored) {
-          mappings.add(new CallActivityMappingImpl(activity.getActivityId(), null));
-        }
-      }
-      return mappings;
-    }
-  }
-
   @Override
-  public List<CallActivityMapping> getCallActivityMappings(String id) {
-
-    return commandExecutor.execute(new EngineQueryLinkedProcessDefinitionsCmd(id));
-
-
+  public List<CallActivityMapping> getStaticCallActivityMappings(String processDefinitionId) {
+    return commandExecutor.execute(new GetStaticCallActivityMappingsCmd(processDefinitionId));
   }
 
 }

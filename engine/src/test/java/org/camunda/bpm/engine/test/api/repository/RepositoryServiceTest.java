@@ -48,6 +48,7 @@ import org.camunda.bpm.engine.RuntimeService;
 import org.camunda.bpm.engine.TaskService;
 import org.camunda.bpm.engine.exception.NotFoundException;
 import org.camunda.bpm.engine.exception.NotValidException;
+import org.camunda.bpm.engine.exception.NullValueException;
 import org.camunda.bpm.engine.history.UserOperationLogEntry;
 import org.camunda.bpm.engine.history.UserOperationLogQuery;
 import org.camunda.bpm.engine.impl.RepositoryServiceImpl;
@@ -1273,7 +1274,7 @@ public class RepositoryServiceTest extends PluggableProcessEngineTest {
     "org/camunda/bpm/engine/test/api/repository/first-process.bpmn20.xml",
     "org/camunda/bpm/engine/test/api/repository/three_.cmmn"
   })
-  public void shouldReturnCalledElementIds() {
+  public void shouldReturnStaticCallActivityMappings() {
     //given
     String deploymentId = repositoryService.createDeployment()
       .addClasspathResource("org/camunda/bpm/engine/test/api/repository/second-process.bpmn20.xml").deploy().getId();
@@ -1284,7 +1285,7 @@ public class RepositoryServiceTest extends PluggableProcessEngineTest {
       .singleResult();
 
     //when
-    List<CallActivityMapping> map = repositoryService.getCallActivityMappings(processDefinition.getId());
+    List<CallActivityMapping> map = repositoryService.getStaticCallActivityMappings(processDefinition.getId());
 
     // then
     assertThat(map).hasSize(7);//cmmn does not count currently
@@ -1332,7 +1333,7 @@ public class RepositoryServiceTest extends PluggableProcessEngineTest {
       }).collect(Collectors.toList());
 
     //when
-    List<CallActivityMapping> map = repositoryService.getCallActivityMappings(processDefinition.getId());
+    List<CallActivityMapping> map = repositoryService.getStaticCallActivityMappings(processDefinition.getId());
 
     //then
     //check that we never try to resolve any of the dynamic bindings
