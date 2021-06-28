@@ -117,7 +117,7 @@ public interface ProcessDefinitionResource {
       @QueryParam(VariableResource.DESERIALIZE_VALUES_QUERY_PARAM) @DefaultValue("true") boolean deserializeValues);
 
   @GET
-  @Path("/linked-callable-elements")
+  @Path("/call-activity-mappings")
   @Produces(MediaType.APPLICATION_JSON)
-  List<CallActivityMappingDto> getCalledProcesses();
+  List<CallActivityMappingDto> getCallActivityMappings();
 }

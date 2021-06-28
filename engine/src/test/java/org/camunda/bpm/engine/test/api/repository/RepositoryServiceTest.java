@@ -1285,11 +1285,11 @@ public class RepositoryServiceTest extends PluggableProcessEngineTest {
       .singleResult();
 
     //when
-    List<CallActivityMapping> map = repositoryService.getStaticCallActivityMappings(processDefinition.getId());
+    List<CallActivityMapping> mappings = repositoryService.getStaticCallActivityMappings(processDefinition.getId());
 
     // then
-    assertThat(map).hasSize(7);//cmmn does not count currently
-    assertThat(map)
+    assertThat(mappings).hasSize(7);//cmmn does not count currently
+    assertThat(mappings)
       .usingElementComparator((result, test) -> {
         //todo clean this up
         if (result.getCallActivityId().equals(test.getCallActivityId()) &&
@@ -1333,7 +1333,7 @@ public class RepositoryServiceTest extends PluggableProcessEngineTest {
       }).collect(Collectors.toList());
 
     //when
-    List<CallActivityMapping> map = repositoryService.getStaticCallActivityMappings(processDefinition.getId());
+    List<CallActivityMapping> mappings = repositoryService.getStaticCallActivityMappings(processDefinition.getId());
 
     //then
     //check that we never try to resolve any of the dynamic bindings
@@ -1344,11 +1344,27 @@ public class RepositoryServiceTest extends PluggableProcessEngineTest {
       Mockito.verify(callableElement, Mockito.never()).getVersionTag(Mockito.anyObject());
       Mockito.verify(callableElement, Mockito.times(1)).hasDynamicBindings();
     }
-    for (CallActivityMapping mapping: map) {
+    for (CallActivityMapping mapping: mappings) {
       assertThat(mapping.getProcessDefinitionId()).isNull();
     }
-    assertThat(map).hasSize(3); //cmmn does not count currently
+    assertThat(mappings).hasSize(3); //cmmn does not count currently
 
+  }
+
+  @Test
+  @Deployment(resources = "org/camunda/bpm/engine/test/api/repository/first-process.bpmn20.xml" )
+  public void shouldReturnEmptyListIfNoCallActivityExists(){
+    //given
+    ProcessDefinition processDefinition = repositoryService
+      .createProcessDefinitionQuery()
+      .processDefinitionKey("process")
+      .singleResult();
+
+    //when
+    List<CallActivityMapping> maps = repositoryService.getStaticCallActivityMappings(processDefinition.getId());
+
+    //then
+    assertThat(maps).isEmpty();
   }
 
   private String deployProcessString(String processString) {
