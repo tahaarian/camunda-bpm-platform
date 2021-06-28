@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -1365,6 +1366,13 @@ public class RepositoryServiceTest extends PluggableProcessEngineTest {
 
     //then
     assertThat(maps).isEmpty();
+  }
+
+  @Test
+  public void testGetStaticCallActivityMappingShouldThrowIfProcessDoesNotExist(){
+    //given //when //then
+    assertThrows(NullValueException.class, () -> repositoryService.getStaticCallActivityMappings("notExistingId"));
+
   }
 
   private String deployProcessString(String processString) {

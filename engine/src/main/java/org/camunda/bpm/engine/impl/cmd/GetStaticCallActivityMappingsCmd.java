@@ -46,12 +46,12 @@ public class GetStaticCallActivityMappingsCmd implements Command<List<CallActivi
 
   @Override
   public List<CallActivityMapping> execute(CommandContext commandContext) {
+    ProcessDefinition definition = commandContext.getProcessEngineConfiguration().getRepositoryService()
+      .getProcessDefinition(processDefinitionId);
 
-    RepositoryService repoService = commandContext.getProcessEngineConfiguration().getRepositoryService();
-    DeploymentCache deploymentCache = commandContext.getProcessEngineConfiguration().getDeploymentCache();
-    ProcessDefinition definition = repoService.getProcessDefinition(processDefinitionId);
-    List<ActivityImpl> activities = deploymentCache.findDeployedProcessDefinitionById(processDefinitionId)
-      .getActivities();
+    List<ActivityImpl> activities = commandContext.getProcessEngineConfiguration().getDeploymentCache()
+      .findDeployedProcessDefinitionById(processDefinitionId).getActivities();
+
     List<ActivityImpl> callActivities = activities.stream()
       .filter(act -> act.getActivityBehavior() instanceof CallActivityBehavior).collect(Collectors.toList());
     // todo check for CaseCallActivityBehavior, alternatively we just need ActivityBehavior actually,

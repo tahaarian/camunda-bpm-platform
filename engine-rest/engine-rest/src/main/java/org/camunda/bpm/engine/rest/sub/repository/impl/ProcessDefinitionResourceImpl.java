@@ -382,9 +382,13 @@ public class ProcessDefinitionResourceImpl implements ProcessDefinitionResource 
 
   @Override
   public List<CallActivityMappingDto> getCallActivityMappings() {
-    return engine.getRepositoryService().getStaticCallActivityMappings(processDefinitionId).stream()
-      .map(CallActivityMappingDto::from)
-      .collect(Collectors.toList());
+    try {
+      return engine.getRepositoryService().getStaticCallActivityMappings(processDefinitionId).stream()
+        .map(CallActivityMappingDto::from)
+        .collect(Collectors.toList());
+    } catch (NullValueException e) {
+      throw new InvalidRequestException(Status.NOT_FOUND, e.getMessage());
+    }
   }
 
   @Override
