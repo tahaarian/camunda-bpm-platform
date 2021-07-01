@@ -57,6 +57,10 @@ public class CallableElementUtil {
     }
 
     VariableScope emptyVariableScope = new StartProcessVariableScope();
+
+    if (callableElement.getTenantIdProvider() instanceof ElValueProvider) {
+      tenantId = callableElement.getDefinitionTenantId(emptyVariableScope);
+    }
     String processDefinitionKey = callableElement.getDefinitionKey(emptyVariableScope);
     return getProcessDefinition(emptyVariableScope, callableElement, processDefinitionKey, tenantId);
   }

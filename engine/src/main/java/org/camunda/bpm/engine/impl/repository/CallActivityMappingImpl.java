@@ -37,4 +37,9 @@ public class CallActivityMappingImpl implements CallActivityMapping {
     return this.processDefinitionId;
   }
 
+  @Override
+  public String toString() {
+    return "CallActivityMappingImpl{" + "callActivityId='" + callActivityId + '\'' + ", processDefinitionId='"
+      + processDefinitionId + '\'' + '}';
+  }
 }

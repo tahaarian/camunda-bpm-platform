@@ -1280,6 +1280,9 @@ public class RepositoryServiceTest extends PluggableProcessEngineTest {
     String deploymentId = repositoryService.createDeployment()
       .addClasspathResource("org/camunda/bpm/engine/test/api/repository/second-process.bpmn20.xml").deploy().getId();
 
+    String deploymentIdTenantProcess = repositoryService.createDeployment()
+      .addClasspathResource("org/camunda/bpm/engine/test/api/repository/processOne.bpmn20.xml").tenantId("someTenant").deploy().getId();
+
     ProcessDefinition processDefinition = repositoryService
       .createProcessDefinitionQuery()
       .processDefinitionKey("TestCallActivitiesWithReferences")
@@ -1289,7 +1292,7 @@ public class RepositoryServiceTest extends PluggableProcessEngineTest {
     List<CallActivityMapping> mappings = repositoryService.getStaticCallActivityMappings(processDefinition.getId());
 
     // then
-    assertThat(mappings).hasSize(7);//cmmn does not count currently
+    assertThat(mappings).hasSize(8);//cmmn does not count currently
     assertThat(mappings)
       .usingElementComparator((result, test) -> {
         //todo clean this up
@@ -1307,11 +1310,14 @@ public class RepositoryServiceTest extends PluggableProcessEngineTest {
       new CallActivityMappingImpl("version_tag1","failingProcess:1:"),
       new CallActivityMappingImpl("no_reference_1",null),
       new CallActivityMappingImpl("incorrect_reference_1",null),
-      new CallActivityMappingImpl("dynamic_reference_1",null)
+      new CallActivityMappingImpl("dynamic_reference_1",null),
+      new CallActivityMappingImpl("tenant_reference_1","processOne:1:")
     );
 
     // delete second deployment
     repositoryService.deleteDeployment(deploymentId, true, true);
+    repositoryService.deleteDeployment(deploymentIdTenantProcess, true, true);
+
   }
 
   @Test
@@ -1343,12 +1349,13 @@ public class RepositoryServiceTest extends PluggableProcessEngineTest {
       Mockito.verify(callableElement, Mockito.never()).getDefinitionKey(Mockito.anyObject());
       Mockito.verify(callableElement, Mockito.never()).getVersion(Mockito.anyObject());
       Mockito.verify(callableElement, Mockito.never()).getVersionTag(Mockito.anyObject());
+      Mockito.verify(callableElement, Mockito.never()).getDefinitionTenantId(Mockito.anyObject());
       Mockito.verify(callableElement, Mockito.times(1)).hasDynamicBindings();
     }
     for (CallActivityMapping mapping: mappings) {
       assertThat(mapping.getProcessDefinitionId()).isNull();
     }
-    assertThat(mappings).hasSize(3); //cmmn does not count currently
+    assertThat(mappings).hasSize(4); //cmmn does not count currently
 
   }
 
