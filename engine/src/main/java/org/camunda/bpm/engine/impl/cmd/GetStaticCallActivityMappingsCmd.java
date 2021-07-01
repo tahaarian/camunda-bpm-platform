@@ -17,6 +17,7 @@
 package org.camunda.bpm.engine.impl.cmd;
 
 import org.camunda.bpm.engine.AuthorizationException;
+import org.camunda.bpm.engine.ProcessEngineException;
 import org.camunda.bpm.engine.RepositoryService;
 import org.camunda.bpm.engine.exception.NullValueException;
 import org.camunda.bpm.engine.impl.bpmn.behavior.CallActivityBehavior;
@@ -75,7 +76,7 @@ public class GetStaticCallActivityMappingsCmd implements Command<List<CallActivi
           }
           mappings.add(new CallActivityMappingImpl(activity.getActivityId(), calledProcessDef.getId()));
         }
-      } catch (NullValueException | AuthorizationException e) {
+      } catch (ProcessEngineException e) {
         mappings.add(new CallActivityMappingImpl(activity.getActivityId(), null));
       }
     }

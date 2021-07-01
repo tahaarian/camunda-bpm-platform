@@ -1295,7 +1295,7 @@ public class RepositoryServiceTest extends PluggableProcessEngineTest {
         //todo clean this up
         if (result.getCallActivityId().equals(test.getCallActivityId()) &&
           (Objects.equals(result.getProcessDefinitionId(), test.getProcessDefinitionId()) ||
-          result.getProcessDefinitionId().startsWith(test.getProcessDefinitionId()))) {
+            (result.getProcessDefinitionId() != null && result.getProcessDefinitionId().startsWith(test.getProcessDefinitionId())))) {
           return 0;
         } else {
           return -1;

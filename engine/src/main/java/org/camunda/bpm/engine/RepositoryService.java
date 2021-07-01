@@ -813,7 +813,7 @@ public interface RepositoryService {
    * the called process could not be resolved without runtime information.
    *
    * @throws ProcessEngineException
-   *          When the process model or diagram doesn't exist.
+   *          When the process definition doesn't exist.
    * @throws AuthorizationException
    *          If the user has no {@link Permissions#READ} permission on {@link Resources#PROCESS_DEFINITION}.
    */
