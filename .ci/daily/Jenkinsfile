@@ -1,6 +1,6 @@
 // https://github.com/camunda/jenkins-global-shared-library
 // https://github.com/camunda/cambpm-jenkins-shared-library
-@Library(['camunda-ci', 'cambpm-jenkins-shared-library']) _
+@Library(['camunda-ci', 'cambpm-jenkins-shared-library@CAM-13784-pipelines-javadocs']) _
 
 def failedStageTypes = []
 
@@ -53,14 +53,40 @@ pipeline {
         ])
       }
     }
-    stage('check-sql-scripts') {
-      steps {
-        cambpmConditionalRetry([
-          agentLabel: 'centos-stable',
-          runSteps: {
-            sh '.ci/scripts/check-sql-scripts.sh'
+    stage('Misc') {
+      parallel {
+        stage('check-sql-scripts') {
+          steps {
+            cambpmConditionalRetry([
+              agentLabel: 'centos-stable',
+              runSteps: {
+                sh '.ci/scripts/check-sql-scripts.sh'
+              }
+            ])
           }
-        ])
+        }
+        stage('stage-javadocs') {
+          when {
+//            branch cambpmDefaultBranch();
+            expression {
+              cambpmWithLabels('javadocs')
+            }
+          }
+          steps {
+            cambpmConditionalRetry([
+              agentLabel: 'h2',
+              runSteps: {
+                cambpmRunMaven('.',
+                    'package javadoc:javadoc javadoc:aggregate -Pdistro,distro-wildfly,distro-webjar,release-community -DskipTests=true -Dskip.frontend.build=true -Dadditionalparam="-Xdoclint:none"',
+                    runtimeStash: true,
+                    jdkVersion: 'jdk-11-latest')
+              },
+              postSuccess: {
+                cambpmStageJavadocs("\"target/site/apidocs/\"", "7.16.99-SNAPSHOT")
+              }
+            ])
+          }
+        }
       }
     }
     stage('Standalone QA tests') {
