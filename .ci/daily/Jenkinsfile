@@ -66,12 +66,9 @@ pipeline {
           }
         }
         stage('stage-javadocs') {
-          when {
+//          when {
 //            branch cambpmDefaultBranch();
-            expression {
-              cambpmWithLabels('javadocs')
-            }
-          }
+//          }
           steps {
             cambpmConditionalRetry([
               agentLabel: 'h2',
