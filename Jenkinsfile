@@ -18,7 +18,7 @@ pipeline {
     booleanParam name: 'PUST_TO_REMOTE', defaultValue: false, description: 'Push the changes back to remote repositories.'
     booleanParam name: 'SKIP_DEPLOY', defaultValue: true, description: 'When checked, job does NOT deploy maven artifacts to Nexus.'
     booleanParam name: 'SKIP_TESTS', defaultValue: true, description: 'Skip Unit tests.'
-    choice name: 'RELEASE_TYPE', choices: ['ALPHA', 'FINAL'], defaultValue: false, description: 'In case of ALPHA release, all artifacts will be uploaded to nightly folders, otherwise to GA folder locations.'
+    choice name: 'RELEASE_TYPE', choices: ['ALPHA', 'FINAL'], description: 'In case of ALPHA release, all artifacts will be uploaded to nightly folders, otherwise to GA folder locations.'
   }
   options {
     buildDiscarder(logRotator(numToKeepStr: '5'))
