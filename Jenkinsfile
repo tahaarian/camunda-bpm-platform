@@ -21,7 +21,8 @@ pipeline {
     choice name: 'RELEASE_TYPE', choices: ['ALPHA', 'FINAL'], description: 'In case of ALPHA release, all artifacts will be uploaded to nightly folders, otherwise to GA folder locations.'
   }
   options {
-    buildDiscarder(logRotator(numToKeepStr: '5'))
+    skipDefaultCheckout()
+    buildDiscarder(logRotator(numToKeepStr: '2'))
     throttleJobProperty(
             throttleEnabled: true,
             throttleOption: 'project',
@@ -32,12 +33,13 @@ pipeline {
     stage('Create Version Tags') {
       agent {
         node {
+          checkout(branch: RELEASE_BRANCH)
           label 'centos-stable'
         }
       }
       steps {
-        sh "git branch --list"
-        sh "git checkout $RELEASE_BRANCH"
+//        sh "git branch --list"
+//        sh "git checkout $RELEASE_BRANCH"
         sh "./mvnw versions:set -DnewVersion=$RELEASE_VERSION"
         sh "git commit -am \"chore(release): Prepare release: set version to $RELEASE_VERSION\""
         sh "git tag -a $RELEASE_VERSION \"$RELEASE_VERSION\""
