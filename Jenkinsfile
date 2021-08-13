@@ -22,7 +22,6 @@ pipeline {
   }
   options {
     skipDefaultCheckout()
-    checkout scm: [$class: 'GitSCM', branches: [[name: "*/$RELEASE_BRANCH"]]]
     buildDiscarder(logRotator(numToKeepStr: '2'))
     throttleJobProperty(
             throttleEnabled: true,
@@ -34,6 +33,7 @@ pipeline {
     stage('Create Version Tags') {
       agent {
         node {
+          checkout scm: [$class: 'GitSCM', branches: [[name: '*/test-release-ci']], extensions: [], userRemoteConfigs: [[credentialsId: 'github-cambpm-ci-pipeline-app', url: 'https://github.com/camunda/camunda-bpm-platform']]]
           label 'centos-stable'
         }
       }
