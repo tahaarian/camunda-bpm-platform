@@ -22,6 +22,7 @@ pipeline {
   }
   options {
     skipDefaultCheckout()
+    checkout(branch: RELEASE_BRANCH)
     buildDiscarder(logRotator(numToKeepStr: '2'))
     throttleJobProperty(
             throttleEnabled: true,
@@ -33,7 +34,6 @@ pipeline {
     stage('Create Version Tags') {
       agent {
         node {
-          checkout(branch: RELEASE_BRANCH)
           label 'centos-stable'
         }
       }
