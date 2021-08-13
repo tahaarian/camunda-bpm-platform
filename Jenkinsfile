@@ -49,8 +49,10 @@ pipeline {
         sh 'git --version'
         sh 'git status'
       }
-      postSuccess {
-        // TODO: push tags here
+      post {
+        success {
+          // TODO: push tags here
+        }
       }
     }
     stage('Build CE Artifacts'){
@@ -63,9 +65,11 @@ pipeline {
         // build with maven
         sh 'pwd'
       }
-      postSuccess {
-        // deploy to nexus/maven central
-        // trigger EE pipeline?
+      post {
+        success {
+          // deploy to nexus/maven central
+          // trigger EE pipeline?
+        }
       }
     }
   }
