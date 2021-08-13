@@ -22,7 +22,7 @@ pipeline {
   }
   options {
     skipDefaultCheckout()
-    checkout(branch: RELEASE_BRANCH)
+    checkout scm: [$class: 'GitSCM', branches: [[name: "*/$RELEASE_BRANCH"]]]
     buildDiscarder(logRotator(numToKeepStr: '2'))
     throttleJobProperty(
             throttleEnabled: true,
