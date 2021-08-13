@@ -52,6 +52,7 @@ pipeline {
       post {
         success {
           // TODO: push tags here
+          echo 'push tags'
         }
       }
     }
@@ -68,6 +69,7 @@ pipeline {
       post {
         success {
           // deploy to nexus/maven central
+          echo 'deploy to nexus'
           // trigger EE pipeline?
         }
       }
