@@ -36,7 +36,7 @@ pipeline {
         }
       }
       steps {
-        sh "git fetch origin"
+        sh "git branch --list"
         sh "git checkout $RELEASE_BRANCH"
         sh "./mvnw versions:set -DnewVersion=$RELEASE_VERSION"
         sh "git commit -am \"chore(release): Prepare release: set version to $RELEASE_VERSION\""
