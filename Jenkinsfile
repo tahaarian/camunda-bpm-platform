@@ -47,12 +47,11 @@ pipeline {
       }
       steps {
         sh 'git --version'
-        sh 'git status'
       }
       post {
         success {
           // TODO: push tags here
-          echo 'push tags'
+          echo 'git status'
         }
       }
     }
@@ -64,7 +63,7 @@ pipeline {
       }
       steps {
         // build with maven
-        sh 'pwd'
+        sh 'ls'
       }
       post {
         success {
