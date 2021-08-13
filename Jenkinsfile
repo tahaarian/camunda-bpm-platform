@@ -33,11 +33,11 @@ pipeline {
     stage('Create Version Tags') {
       agent {
         node {
-          checkout scm: [$class: 'GitSCM', branches: [[name: '*/test-release-ci']], extensions: [], userRemoteConfigs: [[credentialsId: 'github-cambpm-ci-pipeline-app', url: 'https://github.com/camunda/camunda-bpm-platform']]]
           label 'centos-stable'
         }
       }
       steps {
+        checkout scm: [$class: 'GitSCM', branches: [[name: "*/$RELEASE_BRANCH"]], userRemoteConfigs: [[credentialsId: 'github-cambpm-ci-pipeline-app', url: 'https://github.com/camunda/camunda-bpm-platform']]]
 //        sh "git branch --list"
 //        sh "git checkout $RELEASE_BRANCH"
         sh "./mvnw versions:set -DnewVersion=$RELEASE_VERSION"
